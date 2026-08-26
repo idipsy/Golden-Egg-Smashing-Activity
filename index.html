@@ -274,9 +274,10 @@
                 <li><b>活动时间</b>：2026-07-15 00:00:00 ~ 2026-07-24 23:59:59（UTC+8），<span class="new">共 10 天</span>，每日可参与。</li>
                 <li>活动期间，用户<b>每天仅可领取 / 操作 1 次</b>；当日无论最终是否领取，均不可再次参与，需次日重新获得资格。</li>
                 <li><b>每轮以金蛋开始</b>：用户敲击金蛋获得当日初始彩金。</li>
-                <li><span class="new">加码锤子由系统按昨日返奖自动发放，每日 1 把并自动累积</span>，用户无需领取；<span class="new">每人最多加码次数由后台配置，默认按“活动总天数 − 1”计算（第一天领蛋不占加码次数），运营可手动调整</span>。</li>
-                <li>用户点击<b>「确认使用」</b>后，<b>一次性使用当前所有已累积的锤子</b>进行彩金加码，倍率按已用锤子数累计提升。</li>
-                <li>加码后可点击<b>「领取彩金」</b>；<span class="new">领取即本轮结束</span>，次日从新的金蛋开始新一轮。</li>
+                <li><span class="new">加码锤子由系统按昨日返奖自动发放，每日 1 把并自动累积</span>，用户无需领取；<span class="new">每人最多加码次数由后台配置、按轮次计算，默认按“活动总天数 − 1”（第一天领蛋不占加码次数）计算，运营可手动调整</span>。</li>
+                <li>用户点击<b>「确认使用」</b>后，<b>一次性使用当前所有已累积的锤子</b>；点击<b>「彩金加码」</b>即<b>加码成功</b>，倍率按已用锤子数累计提升。</li>
+                <li>加码成功后<b>确认彩金金额</b>，可选择<b>「继续加码」</b>或<b>「领取彩金」</b>；<span class="new">若本轮加码次数已达上限，仅可「领取彩金」</span>。</li>
+                <li><b>「领取彩金」</b>即<b>本轮活动结束</b>，砸完蛋即重置加码次数，次日从新的金蛋开始新一轮。</li>
                 <li>具体活动时间、档位及倍率以页面展示为准；本活动最终解释权归 U8.COM 所有。</li>
               </ol>
             </div>
@@ -318,7 +319,7 @@
           <code>砸金蛋</code> → 获得初始彩金<br>
           <b>立即领取</b> → 本轮结束 → 下一活动日重新砸蛋　或　<b>暂不领取</b> → 保留彩金<br>
           <b>↓</b>　下一活动日<b>锤子加码</b><br>
-          <code>确认使用</code>（确认加码次数）→ <code>彩金加码</code> = 领取成功 → 本轮结束 → 下一活动日<b>重新砸蛋</b>
+          <code>确认使用</code>（确认加码次数）→ <code>彩金加码</code> = <b>加码成功</b> → 确认彩金金额 → <code>领取彩金</code> = <b>本轮结束</b> → 下一活动日<b>重新砸蛋</b>
         </div>
       </div>
       <div class="req-card">
@@ -341,18 +342,18 @@
         </div>
       </div>
       <div class="req-card">
-        <h2><span class="idx">2</span>最大加码上限</h2>
-        <div class="req-tag">后台字段“每人最多加码次数”：默认按理论最大值计算，运营可手动改</div>
+        <h2><span class="idx">2</span>最大加码上限（按轮次）</h2>
+        <div class="req-tag">后台“每人最多加码次数”按轮次计算，砸蛋即重置</div>
         <ul class="req-list">
-          <li><b>取值来源：</b>后台活动配置项 <b>“每人最多加码次数”</b>，用户累计加码不得超出该值。</li>
-          <li><b>默认值（后端自动计算）：</b><br>活动总天数 = 活动结束日 − 活动开始日 + 1；<br>理论最大次数 = <b>活动总天数 − 1</b>（第一天领蛋，不占加码次数）。</li>
-          <li><b>运营可编辑：</b>运营在后台可<b>手动调整“每人最多加码次数”</b>，可小于或等于理论最大值。</li>
-          <li><b>生效逻辑：</b>累计加码达到上限后，<b>停止生成新的锤子加码机会</b>，不再累加。</li>
+          <li><b>计数范围：</b>加码次数<b>按轮次计，不按整个活动时间计</b>。</li>
+          <li><b>上限来源：</b>后台配置项 <b>“每人最多加码次数”</b>，每轮最多加码该次数。</li>
+          <li><b>默认值（后端自动计算）：</b>理论最大次数 = <b>活动总天数 − 1</b>（第一天领蛋，不占加码次数）。</li>
+          <li><b>运营可编辑：</b>运营可<b>手动调整“每人最多加码次数”</b>，≤ 理论最大值。</li>
+          <li><b>重置时机：</b><span class="new">砸完蛋即同时重置加码次数</span>，进入新一轮重新累计。</li>
         </ul>
         <div class="flow-note">
-          示例（活动 2026-07-15 ~ 2026-07-24，共 10 天）：<br>
-          活动总天数 = 10，理论最大次数 = 10 − 1 = <b>9 次</b>；<br>
-          后端默认写入“每人最多加码次数 = 9”，运营可改为 ≤ 9 的任意值。
+          示例（“每人最多加码次数 = 1”）：<br>
+          第 1 天选蛋 → 第 2 天加码 1 次（达上限，仅可领取）→ 第 3 天新一轮选蛋（重置）→ 第 4 天可再次加码。
         </div>
       </div>
       <div class="req-card">
@@ -367,11 +368,13 @@
       </div>
       <div class="req-card">
         <h2><span class="idx">4</span>锤子加码 · 确认次数</h2>
-        <div class="req-tag">先确认加码次数，再彩金加码领取</div>
+        <div class="req-tag">确认加码次数 → 彩金加码（加码成功）→ 领取彩金</div>
         <ul class="req-list">
           <li>进入锤子阶段后，页面展示<b>当前已累积加码次数</b>，点击<b>「确认使用」</b>确认本次加码。</li>
           <li>确认后展示<b>当前累计倍率 / 累计彩金</b>，并出现<b>「彩金加码」</b>按钮。</li>
-          <li>点击<b>「彩金加码」</b>即<b>领取成功</b>，一次性使用全部已累积锤子。</li>
+          <li>点击<b>「彩金加码」</b>即<b>加码成功</b>，一次性使用全部已累积锤子提升倍率 / 彩金。</li>
+          <li>加码成功后展示<b>当前累计彩金金额</b>，可继续选择：<b>「继续加码」</b>或<b>「领取彩金」</b>。</li>
+          <li><span class="new">若本轮加码次数已达上限，弹窗仅保留「领取彩金」</span>，不可继续加码。</li>
         </ul>
       </div>
       <div class="req-card">
@@ -396,7 +399,7 @@
           <li><b>暂不领取</b> → 保留彩金，次日自动进入锤子加码阶段。</li>
           <li><b>模拟昨日返奖</b> → 每日自动累积 1 把锤子（演示用）。</li>
           <li><b>确认使用</b> → 确认加码次数，倍率/彩金更新。</li>
-          <li><b>彩金加码</b> → 即领取成功，本轮结束，次日开新一轮砸蛋。</li>
+          <li><b>彩金加码</b> → 加码成功；<b>确认彩金金额</b>后<b>领取彩金</b> → 本轮结束，次日开新一轮砸蛋。</li>
           <li>顶部<b>演示控制台</b>可重置、模拟返奖、直接进入次日。</li>
         </ul>
       </div>
@@ -429,6 +432,7 @@
       boosted: false,      // 锤子加码已确认使用
       hammer: 0,           // accumulated (available) hammers
       hammerUsed: 0,       // hammers consumed for 加码 this round
+      boostCount: 0,       // 本轮加码次数（按轮次计，砸蛋重置）
       reward: 0,           // current 彩金
       baseReward: 0,
       ratio: 1,
@@ -577,6 +581,7 @@
     S.reward = base;
     S.ratio = 1;
     S.hammerUsed = 0;
+    S.boostCount = 0;
     S.boosted = false;
     S.smashed = true;
     S.doneToday = true;
@@ -586,6 +591,7 @@
 
   function confirmBoost(){
     if(S.stage !== 'hammer' || S.boosted) return;
+    if(S.boostCount >= MAX_BOOST){ toast(`本轮已达最大加码 ${MAX_BOOST} 次，仅可领取彩金`); return; }
     if(S.hammer <= 0){ toast('暂无可使用的加码锤子'); return; }
     const use = S.hammer;
     S.hammerUsed += use;
@@ -593,10 +599,11 @@
     S.reward = Math.round(S.baseReward * S.ratio);
     S.hammer = 0;
     S.boosted = true;
+    S.boostCount++;
     const t = hammerType(S.hammerUsed);
     S.records.push({date:dateLabel(S.day), type:t, amt:'+'+RATIO_STEP.toFixed(2)+'x×'+use});
     burst();
-    toast(`已确认使用 ${use} 次加码，点击「彩金加码」领取`);
+    toast(`已确认使用 ${use} 次加码，加码成功`);
     render();
   }
 
@@ -644,6 +651,7 @@
     S.boosted = false;
     S.hammer = 0;
     S.hammerUsed = 0;
+    S.boostCount = 0;
     S.reward = 0;
     S.baseReward = 0;
     S.ratio = 1;
