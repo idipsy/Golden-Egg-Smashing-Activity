@@ -39,6 +39,7 @@
     padding:13px 16px;margin-bottom:14px;background:var(--paper);border:1px solid #eadfc4;border-radius:15px;box-shadow:var(--shadow);
   }
   .device-controls .lbl{font-size:13px;color:var(--brown);font-weight:700;margin-right:2px;}
+  .ctrl-label{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b4a16;font-weight:600;}
   .status-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;font-size:12px;font-weight:600;background:var(--cream);border:1px solid var(--gold-line);color:var(--brown);}
   .status-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(39,150,58,.18);}
   .status-chip.done .dot{background:var(--orange);box-shadow:0 0 0 3px rgba(240,138,0,.18);}
@@ -202,6 +203,9 @@
         <button class="btn btn-ghost" onclick="resetDemo(true)">重置活动</button>
         <button class="btn btn-ghost" onclick="simulateReturn()">模拟昨日返奖</button>
         <button class="btn btn-primary" onclick="nextDay()">进入次日</button>
+        <label class="ctrl-label" title="每人最多加码次数（后端默认=理论最大，运营可手动调整）">每人最多加码
+          <input type="number" id="maxBoostInput" value="9" min="1" style="width:56px;padding:4px 6px;border:1px solid #e2d1a5;border-radius:8px;font-size:13px;font-weight:700;color:#6b3f13;" onchange="setMaxBoost(this.value)">
+        </label>
       </div>
       <div class="device-wrap">
         <div class="phone" id="phone">
@@ -270,7 +274,7 @@
                 <li><b>活动时间</b>：2026-07-15 00:00:00 ~ 2026-07-24 23:59:59（UTC+8），<span class="new">共 10 天</span>，每日可参与。</li>
                 <li>活动期间，用户<b>每天仅可领取 / 操作 1 次</b>；当日无论最终是否领取，均不可再次参与，需次日重新获得资格。</li>
                 <li><b>每轮以金蛋开始</b>：用户敲击金蛋获得当日初始彩金。</li>
-                <li><span class="new">加码锤子由系统按昨日返奖自动发放，每日 1 把并自动累积</span>，用户无需领取；<span class="new">加码次数无上限，活动期内持续累积直至活动结束</span>。</li>
+                <li><span class="new">加码锤子由系统按昨日返奖自动发放，每日 1 把并自动累积</span>，用户无需领取；<span class="new">每人最多加码次数由后台配置，默认按“活动总天数 − 1”计算（第一天领蛋不占加码次数），运营可手动调整</span>。</li>
                 <li>用户点击<b>「确认使用」</b>后，<b>一次性使用当前所有已累积的锤子</b>进行彩金加码，倍率按已用锤子数累计提升。</li>
                 <li>加码后可点击<b>「领取彩金」</b>；<span class="new">领取即本轮结束</span>，次日从新的金蛋开始新一轮。</li>
                 <li>具体活动时间、档位及倍率以页面展示为准；本活动最终解释权归 U8.COM 所有。</li>
@@ -307,7 +311,7 @@
           <li><b>每天只有 1 次</b>领取 / 参与机会。</li>
           <li><b>领取则本轮结束</b>，次日重新从金蛋阶段开始。</li>
           <li><b>不领取则保留</b>奖励，次日自动进入锤子加码阶段。</li>
-          <li>锤子<b>按昨日返奖每日自动发放 1 把</b>并自动累积，<b>无加码上限</b>。</li>
+          <li>锤子<b>按昨日返奖每日自动发放 1 把</b>并自动累积，<b>累计加码不得超过后台配置的“每人最多加码次数”</b>。</li>
         </ul>
         <div class="flow-note">
           一「轮」流程：<br>
@@ -319,13 +323,13 @@
       </div>
       <div class="req-card">
         <h2><span class="idx">1</span>单轮流程</h2>
-        <div class="req-tag">砸金蛋 → 领取 / 保留 → 可无限循环加码</div>
+        <div class="req-tag">砸金蛋 → 领取 / 保留 → 达到加码上限前可循环加码</div>
         <ul class="req-list">
           <li><b>砸金蛋</b> → 获得<b>初始彩金</b>。</li>
           <li><b>立即领取</b> → 本轮结束 → 下一活动日重新砸蛋。</li>
           <li><b>暂不领取</b> → 保留当前彩金 → 下一活动日<b>锤子加码</b>。</li>
           <li>每次加码后继续选择：<b>领取 / 继续保留</b>。</li>
-          <li>只要活动未结束，<b>可持续循环加码</b>。</li>
+          <li>只要活动未结束<b>且未达到加码上限</b>，可持续循环加码。</li>
         </ul>
         <div class="flow-note">
           <code>砸金蛋</code> → 获得初始彩金 <b>↓</b><br>
@@ -333,18 +337,23 @@
           <b>↓</b><br>
           下一活动日<b>锤子加码</b> → 每次加码后继续选择：<b>领取 / 继续保留</b><br>
           <b>↓</b><br>
-          只要活动未结束，可持续循环加码
+          只要活动未结束且未达到加码上限，可持续循环加码
         </div>
       </div>
       <div class="req-card">
-        <h2><span class="idx">2</span>无限加码规则</h2>
-        <div class="req-tag">不限制固定次数，剩余天数即天然上限</div>
+        <h2><span class="idx">2</span>最大加码上限</h2>
+        <div class="req-tag">后台字段“每人最多加码次数”：默认按理论最大值计算，运营可手动改</div>
         <ul class="req-list">
-          <li>不再限制<b>“最多 4 次”</b>或其他固定次数。</li>
-          <li>用户可累计加码 <b>1 次、4 次、7 次甚至更多</b>，具体次数由<b>活动剩余天数</b>决定。</li>
-          <li>活动结束后<b>停止生成</b>新的锤子加码机会。</li>
-          <li>因此<b>活动剩余天数即实际可继续加码的天然上限</b>。</li>
+          <li><b>取值来源：</b>后台活动配置项 <b>“每人最多加码次数”</b>，用户累计加码不得超出该值。</li>
+          <li><b>默认值（后端自动计算）：</b><br>活动总天数 = 活动结束日 − 活动开始日 + 1；<br>理论最大次数 = <b>活动总天数 − 1</b>（第一天领蛋，不占加码次数）。</li>
+          <li><b>运营可编辑：</b>运营在后台可<b>手动调整“每人最多加码次数”</b>，可小于或等于理论最大值。</li>
+          <li><b>生效逻辑：</b>累计加码达到上限后，<b>停止生成新的锤子加码机会</b>，不再累加。</li>
         </ul>
+        <div class="flow-note">
+          示例（活动 2026-07-15 ~ 2026-07-24，共 10 天）：<br>
+          活动总天数 = 10，理论最大次数 = 10 − 1 = <b>9 次</b>；<br>
+          后端默认写入“每人最多加码次数 = 9”，运营可改为 ≤ 9 的任意值。
+        </div>
       </div>
       <div class="req-card">
         <h2><span class="idx">3</span>锤子自动累积</h2>
@@ -402,6 +411,10 @@
   const HAMMER_NAMES = {5:'普通锤子',20:'铜锤子',50:'银锤子',100:'金锤子',300:'钻石锤子'};
   const TOTAL_DAYS = 10;
   const RATIO_STEP = 0.60; // each hammer adds +0.60x to cumulative ratio (no cap)
+  const ACTIVITY_START = new Date(2026, 6, 15);
+  const ACTIVITY_END = new Date(2026, 6, 24);
+  const THEORETICAL_MAX = TOTAL_DAYS - 1;   // 第一天领蛋，剩余天数都是加码次数：总天数-1
+  let MAX_BOOST = THEORETICAL_MAX;   // 每人最多加码次数：后端默认=理论最大，运营可手动调整
   let S = null;
 
   function activeTiers(){ return S.stage === 'hammer' ? HAMMER_TIERS : EGG_TIERS; }
@@ -413,7 +426,7 @@
       round: 1,
       stage: 'egg',       // 'egg' | 'hammer'
       smashed: false,      // egg smashed this round
-      boosted: false,      // hammer 加码已确认使用
+      boosted: false,      // 锤子加码已确认使用
       hammer: 0,           // accumulated (available) hammers
       hammerUsed: 0,       // hammers consumed for 加码 this round
       reward: 0,           // current 彩金
@@ -593,7 +606,7 @@
     S.day++;
     S.stage = 'hammer';
     S.doneToday = false;
-    S.hammer += 1;               // 次日自动累积 1 把锤子
+    S.hammer = Math.min(MAX_BOOST, S.hammer + 1);   // 次日自动累积 1 把锤子，最多不超过上限
     S.boosted = false;
     toast('已保留奖励，明日进入锤子加码阶段');
     render();
@@ -660,7 +673,7 @@
     if(S.day >= TOTAL_DAYS){ toast('已是活动最后一天'); return; }
     S.day++;
     // 昨日返奖达标 → 今日自动累积 1 把锤子
-    if(S.stage === 'hammer'){ S.hammer++; }
+    if(S.stage === 'hammer'){ S.hammer = Math.min(MAX_BOOST, S.hammer + 1); }
     S.doneToday = false;
     render();
     toast('已推进到第 '+S.day+' 天'+(S.stage==='hammer'?'，自动累积 1 把锤子':''));
@@ -671,6 +684,15 @@
     S.dailyReturn = Math.min(32000, S.dailyReturn + bump);
     render();
     toast('昨日返奖总额已更新');
+  }
+
+  function setMaxBoost(v){
+    const n = parseInt(v, 10);
+    if(!n || n < 1){ document.getElementById('maxBoostInput').value = MAX_BOOST; return; }
+    MAX_BOOST = Math.min(n, THEORETICAL_MAX);
+    if(MAX_BOOST !== n){ document.getElementById('maxBoostInput').value = MAX_BOOST; }
+    if(S && S.hammer > MAX_BOOST){ S.hammer = MAX_BOOST; render(); }
+    toast(`每人最多加码次数已调整为 ${MAX_BOOST} 次`);
   }
 
   // ===== Effects =====
@@ -720,6 +742,7 @@
   }
 
   resetDemo(false);
+  document.getElementById('maxBoostInput').value = MAX_BOOST;
 </script>
 </body>
 </html>
