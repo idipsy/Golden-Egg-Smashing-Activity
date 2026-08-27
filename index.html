@@ -130,6 +130,9 @@
   /* cum card */
   .cum-card{margin:16px 0 0;background:var(--paper);border:1px solid #eadfc4;border-radius:15px;padding:15px;box-shadow:var(--shadow);}
   .cum-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--brown);}
+  .cum-claim{margin-left:auto;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;padding:5px 16px;border-radius:999px;background:linear-gradient(180deg,#e94a3a,#b52417);color:#fff;box-shadow:0 3px 0 #8f160c;}
+  .cum-claim:active{transform:translateY(2px);box-shadow:0 1px 0 #8f160c;}
+  .cum-claim.hidden{display:none;}
   .hammer-ico{width:22px;height:22px;}
   .cum-val{font-size:13px;color:#5c4a28;margin-top:4px;}
   .cum-val b{color:var(--orange);font-size:17px;margin:0 2px;}
@@ -264,7 +267,7 @@
             <div class="next-tip" id="nextTip">再返奖 180 元即可在明日解锁【钻石蛋】</div>
             <div class="link" id="tierLink" onclick="alert('查看活动完整档位详情')">查看活动完整档位详情</div>
             <div class="cum-card">
-              <div class="cum-title"><svg class="hammer-ico" viewBox="0 0 24 24" fill="none" stroke="#c98a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9"/><rect x="11" y="3" width="10" height="6" rx="2" fill="#e8a71e" stroke="#b9820c"/><path d="M7 12l3 3"/></svg><span id="cumTitle"><span id="cumTag">第 1 轮【金蛋】</span>累计彩金 <span id="cumVal" style="color:#e08a00;font-size:16px;">0</span></span></div>
+              <div class="cum-title"><svg class="hammer-ico" viewBox="0 0 24 24" fill="none" stroke="#c98a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l9-9"/><rect x="11" y="3" width="10" height="6" rx="2" fill="#e8a71e" stroke="#b9820c"/><path d="M7 12l3 3"/></svg><span id="cumTitle"><span id="cumTag">第 1 轮【金蛋】</span>累计彩金 <span id="cumVal" style="color:#e08a00;font-size:16px;">0</span></span><button class="cum-claim" id="cumClaimBtn" onclick="claimRound()">领取</button></div>
               <div class="cum-val">当前累计倍率 <b id="cumRatio">1.00x</b> · 累计领取 <span id="cumClaim">0</span> 次</div>
               <div class="records"><div class="r-title">加码记录</div><div id="recordList"></div></div>
             </div>
@@ -375,6 +378,7 @@
           <li>点击<b>「彩金加码」</b>即<b>加码成功</b>，一次性使用全部已累积锤子提升倍率 / 彩金。</li>
           <li>加码成功后展示<b>当前累计彩金金额</b>，可继续选择：<b>「继续加码」</b>或<b>「领取彩金」</b>。</li>
           <li><span class="new">若本轮加码次数已达上限，弹窗仅保留「领取彩金」</span>，不可继续加码。</li>
+          <li><span class="new">若次日未获得加码锤子（昨日返奖未达标），仍可直接「领取彩金」</span>，领取本轮已保留彩金。</li>
         </ul>
       </div>
       <div class="req-card">
@@ -400,6 +404,7 @@
           <li><b>模拟昨日返奖</b> → 每日自动累积 1 把锤子（演示用）。</li>
           <li><b>确认使用</b> → 确认加码次数，倍率/彩金更新。</li>
           <li><b>彩金加码</b> → 加码成功；<b>确认彩金金额</b>后<b>领取彩金</b> → 本轮结束，次日开新一轮砸蛋。</li>
+          <li><b>累计彩金「领取」快捷按钮</b> → 用户砸蛋选择<b>暂不领取</b>后展示；<span class="new">加码达到最大次数或活动结束</span>时隐藏。</li>
           <li>顶部<b>演示控制台</b>可重置、模拟返奖、直接进入次日。</li>
         </ul>
       </div>
@@ -501,6 +506,9 @@
     const tName = N[T[tIdxx]] || N[T[0]];
     document.getElementById('cumTag').textContent = `第 ${S.round} 轮【${tName}】`;
     document.getElementById('cumVal').textContent = S.reward;
+    // 【领取】快捷按钮：暂不领取（保留彩金）后展示；加码达上限或活动结束隐藏
+    const showCumClaim = S.stage === 'hammer' && S.boostCount < MAX_BOOST && S.day <= TOTAL_DAYS;
+    document.getElementById('cumClaimBtn').classList.toggle('hidden', !showCumClaim);
 
     // records
     const rl = document.getElementById('recordList');
@@ -528,7 +536,23 @@
       btnB.style.display = '';
       note.textContent = '每天仅可领取 / 操作 1 次；领取后本轮结束，次日重新开始';
     } else {
-      actionArea.style.display = 'none';
+      actionArea.style.display = '';
+      btnA.textContent = '领取彩金';
+      btnA.className = 'action-btn action-claim';
+      btnA.disabled = false;
+      btnA.style.display = '';
+      btnB.className = 'action-btn action-keep';
+      if(S.boosted){
+        btnB.style.display = 'none';
+        note.textContent = '加码成功，请确认彩金金额后领取彩金';
+      } else {
+        btnB.textContent = '确认使用';
+        btnB.disabled = (S.hammer <= 0) || (S.boostCount >= MAX_BOOST);
+        btnB.style.display = '';
+        note.textContent = S.hammer > 0
+          ? `当前累计 ${S.hammer} 次加码，可加码或直接领取`
+          : '今日未获得加码锤子，可直接领取本轮彩金';
+      }
     }
   }
 
@@ -559,15 +583,11 @@
     // hammer 加码阶段
     zone.innerHTML = `<svg class="hammer-large" viewBox="0 0 24 40" fill="none" stroke="#c98a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 34l12-12"/><rect x="8" y="2" width="20" height="12" rx="3" fill="#e8a71e" stroke="#b9820c"/><path d="M15 16l6 6"/></svg>`;
     if(!S.boosted){
-      info.innerHTML = `<div class="dim">您当前累计获得</div><div><b style="color:#e08a00;font-size:26px;">${S.hammer}</b> 次加码</div><div class="dim" style="margin-top:6px;">请确认是否使用</div>`;
-      btn.textContent = '确认使用';
-      btn.onclick = confirmBoost;
+      info.innerHTML = `<div class="dim">您当前累计获得</div><div><b style="color:#e08a00;font-size:26px;">${S.hammer}</b> 次加码</div>` + (S.hammer > 0 ? '<div class="dim" style="margin-top:6px;">请确认是否使用</div>' : '<div class="dim" style="margin-top:6px;">今日未获得加码锤子</div>');
     } else {
       info.innerHTML = `<div class="dim">【金锤】当前累计倍率</div><div><b style="color:#e08a00;font-size:24px;">${S.ratio.toFixed(2)}x</b> · 当前累计彩金 <b style="color:#e08a00;font-size:22px;">${S.reward}</b></div><div class="achieve-note">活动达标：您已获得【金锤】加码奖励</div>`;
-      btn.textContent = '彩金加码';
-      btn.onclick = claimRound;
     }
-    btn.style.display = '';
+    btn.style.display = 'none';
     zone.appendChild(info);
     rewardBlock.style.display = 'none';
   }
@@ -663,8 +683,6 @@
   function actionA(){
     if(S.stage === 'egg'){
       openClaimModal();
-    } else if(!S.boosted){
-      confirmBoost();
     } else {
       claimRound();
     }
@@ -673,6 +691,8 @@
   function actionB(){
     if(S.stage === 'egg'){
       keepReward();
+    } else {
+      confirmBoost();
     }
   }
 
