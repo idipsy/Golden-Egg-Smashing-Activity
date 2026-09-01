@@ -404,7 +404,11 @@
           <li><b>模拟昨日返奖</b> → 每日自动累积 1 把锤子（演示用）。</li>
           <li><b>确认使用</b> → 确认加码次数，倍率/彩金更新。</li>
           <li><b>彩金加码</b> → 加码成功；<b>确认彩金金额</b>后<b>领取彩金</b> → 本轮结束，次日开新一轮砸蛋。</li>
-          <li><b>累计彩金「领取」快捷按钮</b> → 用户砸蛋选择<b>暂不领取</b>后展示；<span class="new">加码达到最大次数或活动结束</span>时隐藏。</li>
+          <li><b>累计彩金「领取」快捷按钮</b><br>
+            <b>展示条件：</b>用户砸蛋选择<b>暂不领取</b>（保留彩金）后展示；<br>
+            <b>隐藏条件（满足任一即隐藏）：</b>
+            <span class="new">① 当日加码次数门槛已达标、有可用加码次数但用户尚未使用；② 本轮加码次数已达上限；③ 活动已结束。</span>
+          </li>
           <li>顶部<b>演示控制台</b>可重置、模拟返奖、直接进入次日。</li>
         </ul>
       </div>
@@ -435,9 +439,10 @@
       stage: 'egg',       // 'egg' | 'hammer'
       smashed: false,      // egg smashed this round
       boosted: false,      // 锤子加码已确认使用
+      hammerEarned: true,  // 今日是否获得可用加码锤子（昨日返奖达标判定）
+      final: false,        // 已点击「确认」，展示最终彩金
       hammer: 0,           // accumulated (available) hammers
       hammerUsed: 0,       // hammers consumed for 加码 this round
-      boostCount: 0,       // 本轮加码次数（按轮次计，砸蛋重置）
       reward: 0,           // current 彩金
       baseReward: 0,
       ratio: 1,
@@ -507,7 +512,9 @@
     document.getElementById('cumTag').textContent = `第 ${S.round} 轮【${tName}】`;
     document.getElementById('cumVal').textContent = S.reward;
     // 【领取】快捷按钮：暂不领取（保留彩金）后展示；加码达上限或活动结束隐藏
-    const showCumClaim = S.stage === 'hammer' && S.boostCount < MAX_BOOST && S.day <= TOTAL_DAYS;
+    // 【领取】按钮：锤子阶段、未确认最终彩金、当前无可用加码锤子（hammer=0）且本轮加码次数未用完时展示
+    const remainingBoost = MAX_BOOST - S.hammerUsed;
+    const showCumClaim = S.stage === 'hammer' && !S.final && S.hammer <= 0 && remainingBoost > 0;
     document.getElementById('cumClaimBtn').classList.toggle('hidden', !showCumClaim);
 
     // records
@@ -536,23 +543,7 @@
       btnB.style.display = '';
       note.textContent = '每天仅可领取 / 操作 1 次；领取后本轮结束，次日重新开始';
     } else {
-      actionArea.style.display = '';
-      btnA.textContent = '领取彩金';
-      btnA.className = 'action-btn action-claim';
-      btnA.disabled = false;
-      btnA.style.display = '';
-      btnB.className = 'action-btn action-keep';
-      if(S.boosted){
-        btnB.style.display = 'none';
-        note.textContent = '加码成功，请确认彩金金额后领取彩金';
-      } else {
-        btnB.textContent = '确认使用';
-        btnB.disabled = (S.hammer <= 0) || (S.boostCount >= MAX_BOOST);
-        btnB.style.display = '';
-        note.textContent = S.hammer > 0
-          ? `当前累计 ${S.hammer} 次加码，可加码或直接领取`
-          : '今日未获得加码锤子，可直接领取本轮彩金';
-      }
+      actionArea.style.display = 'none';
     }
   }
 
@@ -582,14 +573,54 @@
 
     // hammer 加码阶段
     zone.innerHTML = `<svg class="hammer-large" viewBox="0 0 24 40" fill="none" stroke="#c98a1a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 34l12-12"/><rect x="8" y="2" width="20" height="12" rx="3" fill="#e8a71e" stroke="#b9820c"/><path d="M15 16l6 6"/></svg>`;
-    if(!S.boosted){
-      info.innerHTML = `<div class="dim">您当前累计获得</div><div><b style="color:#e08a00;font-size:26px;">${S.hammer}</b> 次加码</div>` + (S.hammer > 0 ? '<div class="dim" style="margin-top:6px;">请确认是否使用</div>' : '<div class="dim" style="margin-top:6px;">今日未获得加码锤子</div>');
-    } else {
-      info.innerHTML = `<div class="dim">【金锤】当前累计倍率</div><div><b style="color:#e08a00;font-size:24px;">${S.ratio.toFixed(2)}x</b> · 当前累计彩金 <b style="color:#e08a00;font-size:22px;">${S.reward}</b></div><div class="achieve-note">活动达标：您已获得【金锤】加码奖励</div>`;
+    const left = MAX_BOOST - S.hammerUsed;   // 本轮剩余加码次数
+    if(S.final){
+      // 已点击「确认」→ 展示最终彩金 + 领取彩金
+      info.innerHTML = `<div class="ribbon-tag">最终彩金：<span class="num">${S.reward}</span></div>`;
+      zone.appendChild(info);
+      rewardBlock.style.display = 'none';
+      btn.textContent = '领取彩金';
+      btn.onclick = claimRound;
+      btn.classList.remove('alt');
+      btn.disabled = false;
+      btn.style.display = '';
+      return;
     }
-    btn.style.display = 'none';
+    if(left <= 0){
+      // 剩余加码次数=0 → 确认
+      info.innerHTML = `<div class="dim">【金锤】当前累计倍率</div><div><b style="color:#e08a00;font-size:24px;">${S.ratio.toFixed(2)}x</b> · 当前累计彩金 <b style="color:#e08a00;font-size:22px;">${S.reward}</b></div><div class="dim" style="margin-top:6px;">本轮加码次数已用完</div>`;
+      zone.appendChild(info);
+      rewardBlock.style.display = 'none';
+      btn.textContent = '确认';
+      btn.onclick = confirmFinal;
+      btn.classList.remove('alt');
+      btn.disabled = false;
+      btn.style.display = '';
+      return;
+    }
+    if(S.hammer > 0 && S.hammerEarned){
+      // 今日有可用锤子 → 主按钮【彩金加码】/【继续加码】
+      info.innerHTML = `<div class="dim">您当前累计获得</div><div><b style="color:#e08a00;font-size:26px;">${S.hammer}</b> 次加码</div><div class="dim" style="margin-top:6px;">点击「彩金加码」一次性使用</div>`;
+      zone.appendChild(info);
+      rewardBlock.style.display = 'none';
+      btn.textContent = S.hammerUsed > 0 ? '继续加码' : '彩金加码';
+      btn.onclick = doBoost;
+      btn.classList.remove('alt');
+      btn.disabled = false;
+      btn.style.display = '';
+      return;
+    }
+    // 今日无可用锤子
+    info.innerHTML = S.boosted
+      ? `<div class="dim">【金锤】当前累计倍率</div><div><b style="color:#e08a00;font-size:24px;">${S.ratio.toFixed(2)}x</b> · 当前累计彩金 <b style="color:#e08a00;font-size:22px;">${S.reward}</b></div><div class="dim" style="margin-top:6px;">今日未获得加码锤子</div>`
+      : `<div class="dim">今日未获得加码锤子</div>`;
     zone.appendChild(info);
     rewardBlock.style.display = 'none';
+    btn.textContent = S.boosted ? '继续加码' : '彩金加码';
+    btn.onclick = doBoost;
+    btn.classList.add('alt');
+    btn.disabled = true;      // 置灰不可点击
+    btn.style.display = '';
   }
 
   // ===== Actions =====
@@ -601,29 +632,36 @@
     S.reward = base;
     S.ratio = 1;
     S.hammerUsed = 0;
-    S.boostCount = 0;
     S.boosted = false;
+    S.final = false;
+    S.hammer = 0;
     S.smashed = true;
     S.doneToday = true;
     S.records.push({date:dateLabel(S.day), type:'金蛋', amt:'初始彩金 '+base});
     setTimeout(()=>{ render(); }, 340);
   }
 
-  function confirmBoost(){
-    if(S.stage !== 'hammer' || S.boosted) return;
-    if(S.boostCount >= MAX_BOOST){ toast(`本轮已达最大加码 ${MAX_BOOST} 次，仅可领取彩金`); return; }
-    if(S.hammer <= 0){ toast('暂无可使用的加码锤子'); return; }
+  function doBoost(){
+    if(S.stage !== 'hammer' || S.final) return;
+    if(S.hammer <= 0){ toast('今日暂无可使用的加码锤子'); return; }
     const use = S.hammer;
     S.hammerUsed += use;
     S.ratio = 1 + RATIO_STEP * S.hammerUsed;
     S.reward = Math.round(S.baseReward * S.ratio);
     S.hammer = 0;
     S.boosted = true;
-    S.boostCount++;
     const t = hammerType(S.hammerUsed);
     S.records.push({date:dateLabel(S.day), type:t, amt:'+'+RATIO_STEP.toFixed(2)+'x×'+use});
     burst();
-    toast(`已确认使用 ${use} 次加码，加码成功`);
+    toast(`已使用 ${use} 次加码，加码成功`);
+    render();
+  }
+
+  function confirmFinal(){
+    if(S.stage !== 'hammer' || S.final) return;
+    if(MAX_BOOST - S.hammerUsed > 0){ toast('还有可加码次数，请先完成加码'); return; }
+    S.final = true;
+    toast('已确认，请领取最终彩金');
     render();
   }
 
@@ -633,8 +671,10 @@
     S.day++;
     S.stage = 'hammer';
     S.doneToday = false;
-    S.hammer = Math.min(MAX_BOOST, S.hammer + 1);   // 次日自动累积 1 把锤子，最多不超过上限
     S.boosted = false;
+    S.final = false;
+    // 次日：若昨日返奖达标（hammerEarned）则获得 1 把可加码锤子
+    S.hammer = (S.hammerEarned && MAX_BOOST - S.hammerUsed > 0) ? 1 : 0;
     toast('已保留奖励，明日进入锤子加码阶段');
     render();
   }
@@ -669,9 +709,10 @@
     S.stage = 'egg';
     S.smashed = false;
     S.boosted = false;
+    S.final = false;
+    S.hammerEarned = true;
     S.hammer = 0;
     S.hammerUsed = 0;
-    S.boostCount = 0;
     S.reward = 0;
     S.baseReward = 0;
     S.ratio = 1;
@@ -692,7 +733,7 @@
     if(S.stage === 'egg'){
       keepReward();
     } else {
-      confirmBoost();
+      doBoost();
     }
   }
 
@@ -700,18 +741,18 @@
   function nextDay(){
     if(S.day >= TOTAL_DAYS){ toast('已是活动最后一天'); return; }
     S.day++;
-    // 昨日返奖达标 → 今日自动累积 1 把锤子
-    if(S.stage === 'hammer'){ S.hammer = Math.min(MAX_BOOST, S.hammer + 1); }
+    // 昨日返奖达标（hammerEarned）→ 今日得 1 把可加码锤子
+    if(S.stage === 'hammer' && S.hammerEarned && MAX_BOOST - S.hammerUsed > 0){ S.hammer += 1; }
     S.doneToday = false;
     render();
-    toast('已推进到第 '+S.day+' 天'+(S.stage==='hammer'?'，自动累积 1 把锤子':''));
+    toast('已推进到第 '+S.day+' 天'+(S.stage==='hammer'?(S.hammerEarned?'，获得 1 把加码锤子':'，今日未获得加码锤子'):''));
   }
 
   function simulateReturn(){
-    const bump = [120, 340, 780, 1600, 5200, 9000, 1500, 420][Math.floor(Math.random()*8)];
-    S.dailyReturn = Math.min(32000, S.dailyReturn + bump);
+    S.hammerEarned = !S.hammerEarned;
+    S.dailyReturn = S.hammerEarned ? 320 : 0;
     render();
-    toast('昨日返奖总额已更新');
+    toast('昨日返奖'+(S.hammerEarned?'达标，明日获得 1 把加码锤子':'未达标，明日无法加码'));
   }
 
   function setMaxBoost(v){
